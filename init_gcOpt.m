@@ -57,24 +57,6 @@ if ~isfield(probOpts,'fixMu')
     probOpts.fixMu       = [];
 end
 
-if ~isfield(probOpts,'medCheck')
-    probOpts.medCheck       = 0;
-elseif probOpts.medCheck==1 
-    if ~isfield(probOpts,'optExRxns')
-        error('Define optional substrate exchange reactions')
-    elseif isempty(probOpts.optExRxns)
-        error('Define optional substrate exchange reactions')
-    end
-end
-
-if ~isfield(probOpts,'metSpikeCheck')
-    probOpts.metSpikeCheck       = 0;
-else
-    if probOpts.metSpikeCheck && ~isfield(probOpts,'baseMet')
-        error('Hypothetical metabolite spiking routine enabled but no base metabolite is specified! Set "probOpts.baseMet"')
-    end
-end
-
 if ~isfield(probOpts,'netDepth')
     probOpts.netDepth       = 2;
 end
@@ -83,14 +65,6 @@ if ~isfield(probOpts,'depthFlag')
     probOpts.depthFlag       = 1;   
     % 1: check metabolites of specified depth
     % 0: check all metabolites up to the specified depth
-end
-
-if ~isfield(probOpts,'metSpikeRate')
-    probOpts.metSpikeRate       = 1;
-end
-
-if ~isfield(probOpts,'maxMedInt')
-    probOpts.maxMedInt       = 1;
 end
 
 
@@ -203,17 +177,7 @@ model.ub(model.ub>1000)     = 1000;
 model.lb(model.lb<-1000)    = -1000;
 
 
-
 %% Optimisation algorithm initialisation
-
-% Metabolite spiking routine
-if probOpts.metSpikeCheck
-    [model,optExRxns,conMets,conRxns,allMets] = metSpikeRoutine(model,...
-            probOpts.baseMet,probOpts.netDepth,probOpts.depthFlag);
-    probOpts.optExRxns      = optExRxns';
-    probOpts.medCheck       = 1;
-end
-
 % Model to MIP
 [A_j, b_j, lb_j, ub_j,cO, vSize, zSize, lSize,mSize, ySize, B_flux, mapRxnsRed, B, nonKnock, model_s,results_wt] =  ...
     model2MIP(model,notKORxns,bmRxn,targetRxn,subsRxn,maxKO,reductionFlag,solver,probOpts,genOpts);

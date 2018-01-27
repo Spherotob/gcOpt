@@ -1,6 +1,6 @@
 %% gcOpt application Example
 
-% gcOpt requires gurobi MILP solver, COBRA Toolbox as well as CellNetAnalyzer. Make sure that
+% gcOpt requires gurobi MILP solver, COBRA Toolbox. Make sure that
 % all are installed and/or initialized before running the example or gcOpt in general.
 
 
@@ -19,9 +19,10 @@ notknockable        = [notknockable; find(not(cellfun('isempty',(strfind(model.r
 notknockable        = [notknockable; 11];
 probOpts.notKORxns  = model.rxns(notknockable);
 
+% assign biomass formation, substrate uptake and target reaction
 probOpts.bmRxn              = 'BIOMASS_Ecoli_core_w_GAM';
 probOpts.subsRxn            = 'EX_glc__D_e';
-probOpts.targetRxn          = 'EX_lac__D_e';
+probOpts.targetRxn          = 'EX_succ_e';
 
 
 %% Additional or optional properties/options regarding the problem formulation
@@ -33,7 +34,7 @@ probOpts.targetRxn          = 'EX_lac__D_e';
 probOpts.sense  = 'max';
 
 % Maximal allowable reaction deletions
-probOpts.maxKO      = 2;
+probOpts.maxKO      = 7;
 
 % Manually fix growth rate at which gcOpt optimizes the minimal guaranteed
 % production rate (leave empty if growth rate should be automatically fixed
@@ -41,28 +42,9 @@ probOpts.maxKO      = 2;
 probOpts.fixMu      = 0.15;
 
 
-%% Test for alternative, growth-coupling inducing medium compositions and hypothetical metabolite supply
-
-% Alternative, growth-coupling inducing medium compositions
-probOpts.medCheck   = 0;    % Set to "1" to activate function
-% Specifiy optional exchange reactions
-% probOpts.optExRxns  = model.rxns(find(not(cellfun('isempty',(strfind(model.rxns,'Ex_'))))));
-probOpts.optExRxns      = model.rxns([71,76,78]);
-
-% Hypothetical metabolite spiking to identify bottlenecks in metabolite supply 
-probOpts.metSpikeCheck  = 0;            % Set to "1" to activate function
-probOpts.baseMet        = '2-Butanone'; % Specifiy metabolite identifier of base metabolite
-probOpts.depthFlag      = 1;            % 1: Only consider metabolites of the specified distance from the base metabolite
-                                        % 0: Consider all metabolites within the specified distance from the base metabolite
-probOpts.maxMedInt      = 1;            % Maximal number of parallel metabolite spiking reactions 
-
-% Maximal metabolite or medium composition spiking rate [mmol/g/h]
-probOpts.metSpikeRate   = 1;                                         
-     
-
 %% General options (Mostly regarding the gurobi solver)
 % "genOpts" are optional, default values are assigned here
-genOpts.solvThreads     = 3;    % Number of parallel threads
+genOpts.solvThreads     = 7;    % Number of parallel threads
 genOpts.solvCuts        = 1;    % MILP Cuts setting
 genOpts.avBnd           = 500;  % Maximal upper bound of auxiliary variables (dualisation)
 genOpts.TimeLimit       = Inf;  % Maximal runtime of the solver [sec]

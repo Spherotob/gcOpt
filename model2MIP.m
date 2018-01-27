@@ -19,9 +19,6 @@ else
     [~,notknockables]   = ismember(notKORxns,model.rxns);
 end
 
-% Extract rxn numbers related to optional medium compositions
-[~,optExRxns]       = ismember(probOpts.optExRxns,model.rxns);
-
 
 %% Load model data
 S       = model.S;
@@ -78,26 +75,9 @@ fprintf('\t ...Compress metabolic network \n')
 notknockables =     redTargetSpace(model, notknockables, genOpts.modelType);
 
 
-% set bounds for optional medium compositions
-if probOpts.medCheck
-    model.lb(optExRxns)     = -probOpts.metSpikeRate;
-    lb(optExRxns)           = -probOpts.metSpikeRate;
-end
-
 switch reductionFlag
     case 0  % No reduction
         mapRxnsRed      = eye(nRxns);
-        
-        % Assign optional medium composition reactions
-        optExRxnsIrr    = [];
-        optExRxnsRev    = [];
-        for i=1:length(optExRxns)
-            if (lb(optExRxns(i))*ub(optExRxns(i))) < 0
-                optExRxnsRev  = [optExRxnsRev;optExRxns(i)];
-            else
-                optExRxnsIrr    = [optExRxnsIrr;optExRxns(i)];
-            end
-        end
 
         % Transpose notknockable vector
         notknockables   = notknockables';
@@ -114,7 +94,7 @@ switch reductionFlag
         minFlux     = zeros(length(model.rxns),1);
         maxFlux     = minFlux;
         parfor i=1:length(model.rxns)
-            changeCobraSolver('gurobi6','LP');
+            globalLPSolverVariable('gurobi');
             par_model   = model;
             % maximization
             par_model   = changeObjective(par_model,par_model.rxns(i));
@@ -126,7 +106,6 @@ switch reductionFlag
         end
             
       
-
         blockedRxns         = find(((minFlux==0) & (maxFlux==0))); %| ((lb==0) & (ub==0)));
         numBlockedRxns      = size(blockedRxns,1);
         reacidx             = eye(nRxns);   % Maps reactions of reduced network to original network
@@ -141,17 +120,7 @@ switch reductionFlag
         end
 
 
-%         % Remove blocked reactions from network
-%         reacidx(:,blockedRxns)      = [];
-%         S(:,blockedRxns)            = [];
-%         lb(blockedRxns)             = [];
-%         ub(blockedRxns)             = [];
-%         rev(blockedRxns)            = [];
-%         rxns(blockedRxns)           = [];
-%         c(blockedRxns)              = [];
-%         cO(blockedRxns)             = [];
-
-        % alternatively just remove reaction by constraining fluxes to zero
+        % remove reaction by constraining fluxes to zero
         model_s.model   = model;
         model_s.model   = changeRxnBounds(model_s.model,model_s.model.rxns(blockedRxns),0,'b');
         
@@ -180,33 +149,10 @@ switch reductionFlag
         notKnockCompr   = any(reacidx(notknockables,:),1);
         notknockables   = find(notKnockCompr);
         
-        % Assign optional media compositions
-        optExRxnsIrr    = [];
-        optExRxnsRev  = [];
-        for i=1:length(optExRxns)
-            splitNum    = find(reacidx(optExRxns(i),:));
-            if ~isempty(splitNum)
-                if reacidx(optExRxns(i),splitNum)<0 && ~rev(splitNum)
-                    optExRxnsIrr    = [optExRxnsIrr;splitNum];
-                elseif rev(splitNum)
-%                     optExRxnsRev  = [optExRxnsRev;splitNum*sign(reacidx(optExRxns(i),splitNum))];
-                    optExRxnsRev  = [optExRxnsRev;splitNum];    % For exchange reactions always choose reverse flux
-                end
-            end
-        end
-        
-        
-        
+ 
         model_s.reacidx         = reacidx;
         model_s.metidx          = metidx; 
         
-%         model_s.model           = model;
-%         model_s.model.S         = S;
-%         model_s.model.lb        = lb;
-%         model_s.model.ub        = ub;
-%         model_s.model.rev       = rev;
-%         model_s.model.rxns      = rxns;
-%         model_s.model.mets      = mets;
              
 end
 
@@ -231,7 +177,6 @@ objRxns_r   = find(c);
 objRxnsO_r  = find(cO);
 
 
-optExRxnsSplit  = [];
 for i=1:nRev
     S_s(:,nRxns+i)   = -S(:,revRxns(i));
     ub_s(nRxns+i)    = -lb(revRxns(i));
@@ -245,18 +190,11 @@ for i=1:nRev
     if any(objRxnsO_r==revRxns(i))
         cO(nRxns+i,1)    = -1;           % If objective reaction is reversible, its negative reverse flux must be maximised
     end    
-    
-    % Assign split reverse external flux as optional external flux (media
-    % composition)
-    if any(optExRxnsRev==revRxns(i))
-        optExRxnsSplit      = [optExRxnsSplit;nRxns+i];
-    elseif any(optExRxnsRev==-revRxns(i))
-        optExRxnsSplit      = [optExRxnsSplit;revRxns(i)];
-    end    
+     
 end
 
 
-%% Determine essential reactions and exclude from target set
+%% Determine essential reactions and exclude from target space
 [eRxns,~]       = essentialRxns(S_s,lb_s,ub_s,c,B);
 fprintf(['\t\t Essential reactions: ',num2str(sum(eRxns)),'\n'])
 notknockables   = unique([notknockables,find(eRxns)']);
@@ -271,19 +209,9 @@ lb_s(objRxns_r)         = optBmFlux;
 
 
 %% Generate matrices of a general MIP problem
-if probOpts.medCheck
-    % Account optional media compositions
-    [Av,Ay,b,numKORxns,mSize,nonKnock,nonKnock_s,optExRxns]    = genMediaMIPP(nRxns,nRxns_s,...
-                    S_s,ub_s,lb_s,nMets,notknockables,optExRxnsSplit,...
-                    optExRxnsIrr,mapRxnsRed,B);  
-else
-    % Don't account for optional media compositions
-    [Av,Ay,b,numKORxns,nonKnock,nonKnock_s]   = genMIPP(nRxns,nRxns_s,...
-                        S_s,ub_s,lb_s,nMets,notknockables,mapRxnsRed,B);
-    mSize   = 0;
-end
-
-% save model2MIP
+[Av,Ay,b,numKORxns,nonKnock,nonKnock_s]   = genMIPP(nRxns,nRxns_s,...
+                    S_s,ub_s,lb_s,nMets,notknockables,mapRxnsRed,B);
+mSize   = 0;
 
 
 % All entries in Ay1/Ay2
@@ -339,7 +267,15 @@ model_s.nonKnock    = nonKnock;
 model_s.bmRxn       = rxnObjI;
 model_s.targetRxn   = rxnObjO;
 model_s.subsRxn     = subsRxn;
-model_s.optExRxns   = optExRxns;
 model_s.B           = B;
 
 end
+
+
+function globalLPSolverVariable(solver)
+% workaround to allow for the use of COBRA toolbox function
+% "optimizeCbModel" within parfor loop
+global CBT_LP_SOLVER
+CBT_LP_SOLVER   = solver;
+end
+
