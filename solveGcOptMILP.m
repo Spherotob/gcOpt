@@ -1,4 +1,4 @@
-function [results] = solveGcOptMILP(model_s,A_j,b_j,lb_j,ub_j,vSize, zSize, lSize,mSize, ySize,B,B_flux,mapRxnsRed,nonKnock,results_wt,solver,genOpts)
+function [results] = solveGcOptMILP(model_s,A_j,b_j,lb_j,ub_j,vSize, zSize, lSize, ySize,B,B_flux,mapRxnsRed,nonKnock,results_wt,solver,genOpts)
 
 
 fprintf('--> Solve Optimization Problem \n\n')
@@ -6,7 +6,7 @@ fprintf('--> Solve Optimization Problem \n\n')
 d_vSize     = zSize+lSize;
 cO_s        = model_s.cO_s;
 
-cO_j    = [cO_s',zeros(1,d_vSize+ySize+mSize)];                % Outer objective  
+cO_j    = [cO_s',zeros(1,d_vSize+ySize)];                % Outer objective  
 numDualConstr   = size(b_j,1);
 
 
@@ -28,9 +28,9 @@ switch solver.MILP
         gurModel.sense      = char(sense);
         
         % Variable Type
-        vtype                               = cell(d_vSize+vSize+mSize+ySize,1);
+        vtype                               = cell(d_vSize+vSize+ySize,1);
         vtype(:)                            = {'C'};  
-        vtype((end-(ySize+mSize)+1):end,:)  = {'B'};    
+        vtype((end-(ySize)+1):end,:)  = {'B'};    
         gurModel.vtype                      = char(vtype);
         
         gurModel.modelsense = 'max';
@@ -54,13 +54,11 @@ switch solver.MILP
         results.solverOutput    = res;
 %         save optim
         if isfield(res,'x') 
-            resKO       = res.x(d_vSize+vSize+mSize+1:end,1);   % Extract booleans related to reaction deletions
-            resMed      = res.x(d_vSize+vSize+1:(d_vSize+vSize+mSize),1);
+            resKO       = res.x(d_vSize+vSize+1:end,1);   % Extract booleans related to reaction deletions
             resFluxes   = res.x(1:vSize,1);
         else
             resKO       = ones(ySize,1);
             resFluxes   = zeros(vSize,1);
-            resMed      = zeros(mSize,1);
         end            
 end
 
@@ -75,12 +73,6 @@ results.KORxnNum    = find(Kos<1e-05);
 results.nonKnock    = nonKnock;
 results.mapRxnsRed  = mapRxnsRed;
 
-%% Map optional media compositions
-try
-    results.resMed          = resMed;
-catch
-    results.resMed          = [];
-end
     
 %% Map fluxes
 % Use "B" matrix of the compressed model

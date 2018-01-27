@@ -51,7 +51,7 @@ genOpts.TimeLimit       = Inf;  % Maximal runtime of the solver [sec]
 genOpts.Presolve        = 1;    % Presolver of gurobi solver
 
 % Network compression
-genOpts.reductionFlag   = 1;
+genOpts.compressFlag   = 1;
 % 0: No compression
 % 1: Remove blocked reactions
 

@@ -1,4 +1,4 @@
-function [A_j, b_j, lb_j, ub_j, cO, vSize, zSize, lSize,mSize, ySize, B_flux, mapRxnsRed,B, nonKnock, model_s,results_wt] =...  
+function [A_j, b_j, lb_j, ub_j, cO, vSize, zSize, lSize, ySize, B_flux, mapRxnsRed,B, nonKnock, model_s,results_wt] =...  
                 model2MIP(model,notKORxns,rxnObjI,rxnObjO,subsRxn,maxKO,reductionFlag,solver,probOpts,genOpts)
 
 
@@ -211,7 +211,6 @@ lb_s(objRxns_r)         = optBmFlux;
 %% Generate matrices of a general MIP problem
 [Av,Ay,b,numKORxns,nonKnock,nonKnock_s]   = genMIPP(nRxns,nRxns_s,...
                     S_s,ub_s,lb_s,nMets,notknockables,mapRxnsRed,B);
-mSize   = 0;
 
 
 % All entries in Ay1/Ay2
@@ -239,15 +238,13 @@ numDualConstr   = size(d_Av,1);
 
 
 % Assemble matrices of the final optimisation problem
-A_j     = [cOpt', -d_c', sparse(1,ySize+mSize);                         % equality between dual and primal objective
+A_j     = [cOpt', -d_c', sparse(1,ySize);                         % equality between dual and primal objective
             Av, sparse(numPrimConstr,d_vSize), Ay;                      % Stoichiometric constraints / flux boundaries of primal problem
             sparse(numDualConstr,vSize), d_Av, d_Ay;                    % Constraints of the dual problem
-            sparse(1,vSize+d_vSize),ones(1,mSize), sparse(1,ySize);     % Max KO number constraint
-            sparse(1,vSize+d_vSize),sparse(1,mSize), -ones(1,ySize)];
+            sparse(1,vSize+d_vSize),-ones(1,ySize)];   % Max KO number constraint
 b_j     = [0;
             b;
             d_b;
-            probOpts.maxMedInt;
             maxKO-ySize];
 
 lb_j    = [lb_s; lb_d];

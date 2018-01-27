@@ -15,30 +15,16 @@ function results_m = init_gcOpt(model,probOpts,genOpts)
 %                             - fixMu:        objective growth rate
 %                             - notKORxns:    Identifiers of reactions excluded from target space
 %
-%     genOpts:            General (technical) options for gcOpt
-%                             - compressFlag:         (1) Compress model by removing blocked reactions
-%                                                     (0) No compression (default)
-%                             - TimeLimit:            Solver time limit in seconds (default: Inf)
-%                             - printFlag:            (0) Do not plot results (default)
-%                                                     (1) Plot results as a production envelope
-%                             - solvThreads:          Number of threads to be utilized
-%                             - solvCuts:             gurobi solver cut setting (default: 1) 
-%                             - Presolve              gurobi solver presolve settings (default: 1)
-%                             - avBnd:                auxiliary variable bounds (default: 500)                    
-%  
-% OUTPUT
-%     results_m:          results structure
-%                             - KORxnNum:           reaction numbers of deletion targets in the original model
-%                             - KORxnNames:       reaction names of deletion targets
-%                             - KOs:              deletion targets assigend in vector format
-%                             - fluxes:           flux distribution at optimality of the MILP
-%                             - rawRes:           unprocessed results
-%                             - wildtypeData:     production envelope data of wildtype model
-%                             - printData:        production envelope data of GC mutant
-%                             - model:            metabolic model in COBRA format
-
-%%
-
+    genOpts:            General (technical) options for gcOpt
+                            - compressFlag:         (1) Compress model by removing blocked reactions
+                                                    (0) No compression (default)
+                            - TimeLimit:            Solver time limit in seconds (default: Inf)
+                            - printFlag:            (0) Do not plot results (default)
+                                                    (1) Plot results as a production envelope
+                            - solvThreads:          Number of threads to be utilized
+                            - solvCuts              gurobi 
+                                                    
+                                                    
 fprintf(['\n\t\t\t  GGG    CCC',...
          '\n\t\t\t G      C      OOO    PPP   TTTTT',...
          '\n\t\t\t GGGG   C     O   O  P   P    T',...
@@ -135,6 +121,10 @@ if ~isfield(genOpts,'filename_fluxData')
     genOpts.filename_fluxData    = [];
 end
 
+if ~isfield(genOpts,'TimeLimit')
+    genOpts.TimeLimit   = Inf;    % Solver time limit [in seconds]
+end
+
 
 if ~isfield(genOpts,'solver')
     genOpts.solver.LP       = 0;
@@ -195,12 +185,12 @@ model.lb(model.lb<-1000)    = -1000;
 
 %% Optimisation algorithm initialisation
 % Model to MIP
-[A_j, b_j, lb_j, ub_j,cO, vSize, zSize, lSize, ySize, B_flux, mapRxnsRed, B, nonKnock, model_s,results_wt] =  ...
+[A_j, b_j, lb_j, ub_j,cO, vSize, zSize, lSize,mSize, ySize, B_flux, mapRxnsRed, B, nonKnock, model_s,results_wt] =  ...
     model2MIP(model,notKORxns,bmRxn,targetRxn,subsRxn,maxKO,reductionFlag,solver,probOpts,genOpts);
 
 
 % Solve Problem
- [results] = solveGcOptMILP(model_s, A_j,b_j,lb_j,ub_j,vSize, zSize, lSize, ySize,B,B_flux,...
+ [results] = solveGcOptMILP(model_s, A_j,b_j,lb_j,ub_j,vSize, zSize, lSize,mSize, ySize,B,B_flux,...
                             mapRxnsRed,nonKnock,results_wt,solver,genOpts);
 
                         
@@ -219,6 +209,11 @@ results_m =   testStrategy(model, results_m);
 % Yield over Mu
 if ~isempty(results_m.KOs)
 %     try
+        % Account for optional medium compositions
+        if probOpts.medCheck
+            model.lb(results_m.optMedComp)  = -probOpts.metSpikeRate;
+            model.ub(results_m.optMedComp)  = -probOpts.metSpikeRate;
+        end
         printData              = YoM(model,bmRxn,subsRxn,targetRxn,results_m.KORxnNum,genOpts.printFlag);
 %     catch
 %         warning('Printing of results unsuccessful!')

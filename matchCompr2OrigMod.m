@@ -27,16 +27,6 @@ for i=1:size(KONumMatch,2)
 end
 
 
-%% Match optional medium composition
-if probOpts.medCheck
-    optMedComp                      = model_s.optExRxns((results.resMed.*model_s.optExRxns)~=0);
-    optMedComp                      = any(reacidx(:,any(model_s.B(:,optMedComp),2)'),2);
-    results_matched.optMedComp      = optMedComp;
-    results_matched.optMedRxnNames  = model.rxnNames(optMedComp);
-end
-
-
-
 %% Rewrite results file
 % KOs
 results_matched.KORxnNum            = KoNumStore;
