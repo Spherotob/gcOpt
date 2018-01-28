@@ -6,4 +6,7 @@ For an introduction to gcOpt, open and run "gcOpt_Example.m".
 Usage of Matlab 2016b (https://de.mathworks.com/products/matlab.html) or later versions as well as the gurobi 7 (www.gurobi.com/) solver are recommended.
 COBRA toolbox is additionally needed (https://opencobra.github.io/cobratoolbox/stable/)
 
+[![DOI](https://zenodo.org/badge/119040294.svg)](https://zenodo.org/badge/latestdoi/119040294)
+
+
 The content of this repository is licensed under a MIT License.
