@@ -36,6 +36,18 @@ function results_m = init_gcOpt(model,probOpts,genOpts)
 %                             - wildtypeData:     production envelope data of wildtype model
 %                             - printData:        production envelope data of GC mutant
 %                             - model:            metabolic model in COBRA format
+%                             - ex:               key data of mutant model
+%                                                 .maxMu:         Maximal growth rate
+%                                                 .minPR_maxMu:   minimally guaranteed target production rate at maximal growth rate
+%                                                 .ratio_minPR:   ratio between minPR_maxMu and theoretical maximal target production rate
+%                                                 .minP_maxMu:    minimally guaranteed productivity (mmol/h) at maximal growth
+%                                                 .ratio_minP:    ratio between minP_maxMu and maximal theoretical productivity
+%                                                 .gcs:           grwoth-coupling strength
+%                                                 .Y_maxMu:       target product yield at maximal growth rate
+% 
+% AUTHOR:
+%     - Tobias Alter      29th January 2018
+%         Institute of Applied Microbiology, RWTH Aachen University
 
 %%
 
@@ -131,11 +143,6 @@ else
     reductionFlag   = genOpts.compressFlag;
 end
 
-if ~isfield(genOpts,'filename_fluxData')
-    genOpts.filename_fluxData    = [];
-end
-
-
 if ~isfield(genOpts,'solver')
     genOpts.solver.LP       = 0;
     genOpts.solver.MILP     = 0;
@@ -167,7 +174,7 @@ if ~isfield(genOpts,'printFlag')
 end
 
 if ~isfield(genOpts,'solvThreads')
-    genOpts.solvThreads       = 1;
+    genOpts.solvThreads       = 0;
 end
 
 if ~isfield(genOpts,'solvCuts')
@@ -191,6 +198,27 @@ end
 % Reduce maximal upper and lower boundaries to 1000 or -1000, respectively
 model.ub(model.ub>1000)     = 1000;
 model.lb(model.lb<-1000)    = -1000;
+
+%% Handle parallelization
+p   = gcp('nocreate');
+if isempty(p)
+    if genOpts.solvThreads <= 0
+        % start default parallel cluster
+        parpool;
+    else
+        % start paralel cluster
+        parpool(genOpts.solvThreads);
+    end
+else
+    if (p.NumWorkers ~= genOpts.solvThreads) && (genOpts.solvThreads>0)
+        delete(p)   % close parallel cluster
+        parpool(genOpts.solvThreads)    % start new parallel cluster
+    end
+end
+p                       = gcp('nocreate');
+genOpts.solvThreads     = p.NumWorkers;
+disp(['Number of parallel workers: ',num2str(p.NumWorkers)])
+
 
 
 %% Optimisation algorithm initialisation
@@ -218,12 +246,7 @@ results_m =   testStrategy(model, results_m);
 %% Print solution
 % Yield over Mu
 if ~isempty(results_m.KOs)
-%     try
-        printData              = YoM(model,bmRxn,subsRxn,targetRxn,results_m.KORxnNum,genOpts.printFlag);
-%     catch
-%         warning('Printing of results unsuccessful!')
-%         printData   = [];
-%     end
+    printData              = YoM(model,bmRxn,subsRxn,targetRxn,results_m.KORxnNum,genOpts.printFlag);
 end
 
 results_m.printData     = printData;
@@ -232,7 +255,7 @@ results_m.model         = model;
 %% Examine gcOpt Result
 fprintf('--> Examine results \n')
 if (optType==0) && isfield(results_m.wildtypeData,'yieldR') && isfield(results_m.printData,'yieldR') 
-    results_m.ex = examineGcOptResults(results_m, results_m.wildtypeData, genOpts.filename_fluxData);
+    results_m.ex = examineGcOptResults(results_m, results_m.wildtypeData);
 end
 
 

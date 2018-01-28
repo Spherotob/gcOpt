@@ -1,8 +1,23 @@
-%% gcOpt application Example
-
-% gcOpt requires gurobi MILP solver, COBRA Toolbox. Make sure that
-% all are installed and/or initialized before running the example or gcOpt in general.
-
+%% gcOpt example employing the Escherichia coli iAF1260core model
+%
+%
+% The metabolic model (iAF1260Core.mat) was provided and downloaded from the BiGG database, hosted and 
+% maintained by the Systems Biology Research Group at the University of California, San Diego:
+% "http://bigg.ucsd.edu/"
+%
+% Compatibility notes:
+% - gcOpt requires gurobi MILP solver. Refer to "http://www.gurobi.com/"
+%   for further information.
+%       -> Academic licenses are freely available.
+% 
+%  - COBRA toolbox need to be installed. Cf.: "https://opencobra.github.io/cobratoolbox/stable/"
+%
+%
+% Refer to init_gcOpt.m header for further information about the inputs/outputs of gcOpt
+%
+% AUTHOR:
+%     - Tobias Alter      29th January 2018
+%         Institute of Applied Microbiology, RWTH Aachen University
 
 %% Load and setup Model
 
@@ -44,7 +59,7 @@ probOpts.fixMu      = 0.15;
 
 %% General options (Mostly regarding the gurobi solver)
 % "genOpts" are optional, default values are assigned here
-genOpts.solvThreads     = 7;    % Number of parallel threads
+genOpts.solvThreads     = 4;    % Number of parallel threads
 genOpts.solvCuts        = 1;    % MILP Cuts setting
 genOpts.avBnd           = 500;  % Maximal upper bound of auxiliary variables (dualisation)
 genOpts.TimeLimit       = Inf;  % Maximal runtime of the solver [sec]
@@ -57,11 +72,6 @@ genOpts.compressFlag   = 1;
 
 % model type/ specifier type (0: BIGG database)
 genOpts.modelType   = 0;
-
-% Specifiy Excel File name including flux data for reference flux
-% distribution
-genOpts.filename_fluxData   = [];
-
 
 
 %% Initialize gcOpt
