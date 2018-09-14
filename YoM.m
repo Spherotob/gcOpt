@@ -141,6 +141,10 @@ yieldRmin   = zeros(size(muRmin));
 yieldRmax   = yieldRmin;
 prodRmin    = yieldRmin;
 prodRmax    = yieldRmin;
+fluxMin     = yieldRmin;
+fluxMax     = yieldRmin;
+bmYieldMin     = yieldRmin;
+bmYieldMax     = yieldRmin;
 
 model           = changeObjective(model,objRxn);
 for i=1:size(muRmax,1)
@@ -153,25 +157,33 @@ for i=1:size(muRmax,1)
     FBAsolMin          = optimizeCbModel(model,'min'); 
 
     if ~strcmp(FBAsolMax.origStat,'INFEASIBLE')
+        fluxMax(i)              = FBAsolMax.x(objRxnNum);
         % Calculate yield
         yieldRmax(i)            = FBAsolMax.x(objRxnNum)/(-1*FBAsolMax.x(subsRxnNum));
+        bmYieldMax(i)           = muRmax(i)/(-1*FBAsolMax.x(subsRxnNum));
         subsUptakeIntervent(i)       = FBAsolMax.x(subsRxnNum);
         % calculate productivity
         prodRmax(i)             = FBAsolMax.x(objRxnNum)*(exp(muRmax(i))-1);
     else
         yieldRmax(i)    = -1;
         prodRmax(i)     = -1;
+        fluxMax(i)      = -1;
+        bmYieldMax(i)   = -1;
     end
     
     if ~strcmp(FBAsolMin.origStat,'INFEASIBLE')
+        fluxMin(i)              = FBAsolMin.x(objRxnNum);
         % Calculate yield
         yieldRmin(i)            = FBAsolMin.x(objRxnNum)/(-1*FBAsolMin.x(subsRxnNum));
+        bmYieldMin(i)           = muRmin(i)/(-1*FBAsolMin.x(subsRxnNum));
         subsUptakeIntervent(i)  = FBAsolMin.x(subsRxnNum);
         % calculate productivity
         prodRmin(i)             = FBAsolMin.x(objRxnNum)*(exp(muRmin(i))-1);
     else
         yieldRmin(i)    = -1;
         prodRmin(i)     = -1;
+        fluxMin(i)      = -1;
+        bmYieldMin(i)   = -1;
     end
 
 end
@@ -181,6 +193,11 @@ swapVec     = linspace(size(muRmax,1),1,size(muRmax,1));
 yieldR      = [yieldRmin;yieldRmax(swapVec)];
 prodR       = [prodRmin;prodRmax(swapVec)];
 muR         = [muRmin;muRmax(swapVec)];
+flux        = [fluxMin;fluxMax(swapVec)];
+bmYield     = [bmYieldMin;bmYieldMax(swapVec)];
+
+% transform units
+bmYield     = bmYield.*1000;    % g/mol
 
 % Delete infeasible solutions
 del     = (yieldR<0)|(prodR<0)|(muR<0);
@@ -188,6 +205,8 @@ del     = (yieldR<0)|(prodR<0)|(muR<0);
 yieldR(del)     = [];
 prodR(del)      = [];
 muR(del)        = [];
+flux(del)       = [];
+bmYield(del)    = [];
 
 % [yieldR,I]  = sort(yieldR,'ascend');
 % prodR       = prodR(I);
@@ -198,7 +217,9 @@ if plotFlag
     fprintf('--> Print results \n')
    %     printYieldoverMu(muR,yieldR,prodR,model.rxnNames{objRxnNum},0);
     figure;
-    printYieldoverMu_add(muR,yieldR,prodR,model.rxnNames{objRxnNum});
+%     printYieldoverMu_add(muR,yieldR,prodR,model.rxnNames{objRxnNum});
+     printYieldoverMu_add(bmYield,yieldR,prodR,model.rxnNames{objRxnNum});
+
 end
 
 
@@ -231,7 +252,9 @@ end
 results.yieldR  = yieldR;
 results.prodR   = prodR;
 results.muR     = muR;
-results.Mu_Y_P  = [muR,yieldR,prodR];
+results.flux    = flux;
+results.bmYield = bmYield;
+results.Mu_Y_P_F_BMY  = [muR,yieldR,prodR,flux,bmYield];
 
 
 

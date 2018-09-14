@@ -95,7 +95,8 @@ results                 = YoM(model,bmRxn,subsRxn,objRxn,[],0);
 output.yieldR           = results.yieldR;
 output.muR              = results.muR;
 output.prodR            = results.prodR;
-output.mu_Y_P           = results.Mu_Y_P;
+output.bmYield          = results.bmYield;
+output.Mu_Y_P_F_BMY     = results.Mu_Y_P_F_BMY;
 % output.subsUpR          = subsUptake;
 % output.objFluxR         = objFlux;
 

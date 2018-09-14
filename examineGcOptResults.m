@@ -25,6 +25,7 @@ mRange_mut       = results.printData.muR;
 pRange_mut       = results.printData.prodR;
 
 
+
 %% Wild type
 [th_maxY, ~]    = max(yRange_wt);
 [th_maxP, ~]    = max(pRange_wt);

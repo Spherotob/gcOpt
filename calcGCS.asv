@@ -5,7 +5,7 @@ function gcs = calcGCS(results, results_WT)
 
 %% Calculate wild type yield space area
 yRange      = results_WT.yieldR;
-% mRange      = results_WT.muR;
+% rmRange      = results_WT.muR;
 mRange      = results_WT.bmYield;
 
 
@@ -71,8 +71,7 @@ end
 %% Alternative Calculate GCS for mutant
 % Determine maximal growth rate for mutant
 yRangeMut       = results.printData.yieldR;
-% mRangeMut       = results.printData.muR;
-mRangeMut       = results.printData.bmYield;
+mRangeMut       = results.printData.muR;
 
 % yRangeMut       = results.yieldR;
 % mRangeMut       = results.muR;
