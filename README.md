@@ -12,5 +12,6 @@ COBRA toolbox is additionally needed (https://opencobra.github.io/cobratoolbox/s
 The content of this repository is licensed under a MIT License.
 
 For a detailed description of the algorithm refer to the corresponding publication:
-Determination of growth-coupling strategies and their underlying principles (https://doi.org/10.1101/258996)
-Alter, T. B.; Blank, L. M.; Ebert, B. E. 
+Determination of growth-coupling strategies and their underlying principles (https://doi.org/10.1186/s12859-019-2946-7)
+Alter, T. B.; Ebert, B. E. 
+BMC Bioinformatics
